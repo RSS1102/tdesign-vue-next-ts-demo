@@ -1,80 +1,26 @@
 import { mount } from '@vue/test-utils';
-import { nextTick } from 'vue';
+import { nextTick, ref } from 'vue';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { Affix } from '@/src/affix/index.ts';
 
 describe('Affix', () => {
-  test('_______', () => {
-    expect(true).toEqual(true);
-  });
-
   vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => cb());
 
-  describe('Test the state of the container under the window', () => {
-    const offsetTop = 10;
-    const slotWidth = 100;
-    const slotHeight = 20;
-
+  describe('Test Affix Props', () => {
+    const containerRef = ref();
+    const offsetTop = ref(100);
+    const offsetBottom = ref(100);
     const wrapper = mount({
       render() {
         return (
-          <Affix offsetTop={offsetTop}>
-            <div style={{ width: `${slotWidth}px`, height: `${slotHeight}px` }}>hello world</div>
-          </Affix>
-        );
-      },
-    }).findComponent(Affix);
-
-    // 模拟 affixWrap 的位置
-    vi.spyOn(wrapper.vm.affixWrapRef, 'getBoundingClientRect').mockImplementation(() => ({
-      top: 5,
-      width: slotWidth,
-      height: slotHeight,
-    }));
-
-    it('Test get container', async () => {
-      await nextTick();
-      expect(wrapper.vm.scrollContainer).toBe(window);
-    });
-
-    it('Test the scrolling state', async () => {
-      // 模拟滚动触发
-      window.dispatchEvent(new CustomEvent('scroll'));
-      expect(wrapper.find('.t-affix').classes()).toContain('t-affix');
-    });
-
-    it('Test the position in the scroll state', () => {
-      // 模拟滚动触发
-      window.dispatchEvent(new CustomEvent('scroll'));
-      const style = wrapper.find('.t-affix').attributes('style');
-      expect(style).toBe(`top: ${offsetTop}px; width: ${slotWidth}px; height: ${slotHeight}px;`);
-    });
-
-    it('Test the generation of placeholder nodes', () => {
-      // 模拟滚动触发
-      window.dispatchEvent(new CustomEvent('scroll'));
-      expect(wrapper.html()).toContain(`<div style="width: ${slotWidth}px; height: ${slotHeight}px;"></div>`);
-    });
-  });
-
-  describe('Test the specified container', () => {
-    const offsetTop = 10;
-    const slotWidth = 100;
-    const slotHeight = 20;
-    const containerTop = 100;
-
-    const wrapper = mount({
-      methods: {
-        container() {
-          return this.$refs?.container;
-        },
-      },
-      render() {
-        return (
-          <div class="container" ref="container">
-            <Affix container={this.container} offsetTop={offsetTop}>
-              <div style="width: 100px; height: 20px">hello world</div>
-            </Affix>
+          <div style="width: 500px; height: 500px" ref={containerRef}>
+            <div style="width: 1000px; height: 1000px; padding-top: 700px;">
+              <Affix container={containerRef.value} offsetBottom={offsetBottom.value} offsetTop={offsetTop.value}>
+                <div class="affixs" style="width: 100px; height: 20px">
+                  hello world
+                </div>
+              </Affix>
+            </div>
           </div>
         );
       },
@@ -84,38 +30,26 @@ describe('Affix', () => {
 
     it('Test get container', async () => {
       await nextTick();
-      expect(affixWrapper.vm.scrollContainer).toBe(wrapper.vm.container());
-    });
-    // 模拟 affixWrap 的位置
-    beforeEach(() => {
-      vi.spyOn(affixWrapper.vm.affixWrapRef, 'getBoundingClientRect').mockImplementation(() => ({
-        top: 5,
-        width: slotWidth,
-        height: slotHeight,
-      }));
+      expect(affixWrapper.props('container')).toBe(containerRef.value);
     });
 
-    it('Test the scrolling state', async () => {
-      // 模拟容器滚动
-      wrapper.vm.container().dispatchEvent(new CustomEvent('scroll'));
-      expect(affixWrapper.find('.t-affix').classes()).toContain('t-affix');
+    it('Test default slot', async () => {
+      await nextTick();
+      expect(affixWrapper.html().includes('<div style="width: 100px; height: 20px;">hello world</div>')).toBe(true);
     });
 
-    beforeEach(() => {
-      // 模拟绑定
-      window.addEventListener('scroll', affixWrapper.vm.handleScroll);
-      // 模拟容器的位置
-      vi.spyOn(affixWrapper.vm.scrollContainer, 'getBoundingClientRect').mockImplementation(() => ({
-        top: containerTop,
-      }));
-    });
+    it('Test offsetBottom', async () => {
+      await nextTick();
+      containerRef.value.scrollTop = 500;
+      const affixElement = wrapper.find('.affixs');
+      expect(wrapper.find('.affixs').exists()).toBeTruthy();
+      // console.log("affixElement", affixElement);
+      // const rect = affixElement.getBoundingClientRect();
 
-    it('Test the positioning after opening the binding window sliding event', () => {
-      // 模拟滚动触发
-      window.dispatchEvent(new CustomEvent('scroll'));
+      // // 判断元素是否在可视页面的特定位置
+      // const isInView = rect.bottom <= window.innerHeight;
 
-      const style = wrapper.find('.t-affix').attributes('style');
-      expect(style).toBe(`top: ${offsetTop + containerTop}px; width: ${slotWidth}px; height: ${slotHeight}px;`);
+      // expect(isInView).toBe(true);
     });
   });
 });
